@@ -1,0 +1,12 @@
+# ide
+/.idea
+/.vscode
+
+# dependencies
+/node_modules
+
+# production
+/dist
+
+# misc
+npm-debug.log*
