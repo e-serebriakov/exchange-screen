@@ -1,7 +1,8 @@
 // @flow
 
 import React from 'react';
+import { DatePicker } from 'antd';
 
-const App = () => <div>Exchange screen</div>;
+const App = () => <DatePicker />;
 
 export default App;

@@ -1,14 +1,15 @@
 {
   "presets": [
-    "flow",
     "@babel/preset-env",
-    "@babel/preset-react"
+    "@babel/preset-react",
+    "@babel/preset-flow"
   ],
   "ignore": [
     "node_modules",
     "dist"
   ],
   "plugins": [
-    "transform-class-properties"
+    "transform-class-properties",
+    ["import", { "libraryName": "antd", "libraryDirectory": "es", "style": true }]
   ]
 }
