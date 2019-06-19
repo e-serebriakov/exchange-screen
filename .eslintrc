@@ -4,7 +4,15 @@
   "globals": {
     "window": true,
     "document": true,
-    "__dirname": true
+    "__dirname": true,
+    "SyntheticEvent": true,
+    "SyntheticInputEvent": true
+  },
+  "env": {
+    "node": true,
+    "browser": true,
+    "commonjs": true,
+    "es6": true
   },
   "rules": {
     "react/jsx-filename-extension": [
@@ -15,6 +23,7 @@
         ]
       }
     ],
+    "react/prop-types": 0,
     "operator-linebreak": [
       "error",
       "after"
@@ -46,11 +55,10 @@
         "ignoreTemplateLiterals": true
       }
     ],
-    "react/jsx-one-expression-per-line": [
-      0
-    ],
-    "prefer-destructuring": [
-      0
-    ]
+    "arrow-parens": [2, "always"],
+    "react/jsx-one-expression-per-line": [0],
+    "prefer-destructuring": [0],
+    "react/require-default-props": [0],
+    "react/default-props-match-prop-types": [0]
   }
 }
