@@ -1,8 +1,13 @@
 import React, { Component } from 'react';
+import { Query, graphql, compose } from 'react-apollo';
 import {
   Form, Row, Col, Button, Icon,
 } from 'antd';
 
+import matchCurrencySign from '../../utils/matchCurrencySign';
+import mutations from '../../graphql/mutations';
+import queries from '../../graphql/queries';
+import { withCurrencyList } from '../../graphql/hocs';
 import NumericInput from '../NumericInput/NumericInput';
 import CurrencySelect from '../CurrencySelect/CurrencySelect';
 import './ExchangeForm.less';
@@ -15,11 +20,25 @@ class ExchangeForm extends Component {
     currencyTo: 'RUB',
   };
 
-  rate = 1.25;
+  handleSubmit = (rate) => (event) => {
+    const {
+      amount,
+      currencyFrom,
+      currencyTo,
+    } = this.state;
 
-  handleSubmit = (event) => {
     event.preventDefault();
-    console.log('handleSubmit event', event);
+
+    this.props.exchangeMutation({
+      variables: {
+        params: {
+          rate,
+          amount: amount * 100,
+          currencyFrom,
+          currencyTo,
+        },
+      },
+    });
   }
 
   handleAmountChange = (currency) => (value) => {
@@ -40,75 +59,117 @@ class ExchangeForm extends Component {
   handleCurrencyToChange = this.handleCurrencyChange('currencyTo');
 
   render() {
+    const { currencyListQuery } = this.props;
     const {
       amount, changedCurrency, currencyFrom, currencyTo,
     } = this.state;
 
-    const currencyFromAmount = changedCurrency === currencyFrom ? amount : (amount * this.rate);
-    const currencyToAmount = changedCurrency === currencyTo ? amount : (amount / this.rate);
-
     return (
-      <Form
-        onSubmit={this.handleSubmit}
-        className="exchangeForm"
+      <Query
+        query={queries.GET_EXCHANGE_RATES}
+        variables={{ base: currencyFrom }}
+        pollInterval={1000 * 10}
       >
-        <Row gutter={24}>
-          <Col span={11}>
-            <Form.Item>
-              <CurrencySelect
-                value={currencyFrom}
-                onChange={this.handleCurrencyFromChange}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={2}>
-            <Form.Item style={{ textAlign: 'center' }}>
-              <Icon type="arrow-right" />
-            </Form.Item>
-          </Col>
-          <Col span={11}>
-            <Form.Item>
-              <CurrencySelect
-                value={currencyTo}
-                onChange={this.handleCurrencyToChange}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={24}>
-          <Col span={11}>
-            <Form.Item>
-              <NumericInput
-                value={currencyFromAmount}
-                currency={currencyFrom}
-                onChange={this.handleAmountChange(currencyFrom)}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={2}>
-            <Form.Item>
-            </Form.Item>
-          </Col>
-          <Col span={11}>
-            <Form.Item>
-              <NumericInput
-                value={currencyToAmount}
-                currency={currencyTo}
-                onChange={this.handleAmountChange(currencyTo)}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={24}>
-          <Col span={24} style={{ textAlign: 'center' }}>
-            <Button type="primary" htmlType="submit">
-              exchange
-            </Button>
-          </Col>
-        </Row>
-      </Form>
+        {({ loading, data }) => {
+          const {
+            rates: {
+              rates = [],
+            } = {},
+          } = data;
+          const toCurrencyRate = rates.find(({ currency }) => currency === currencyTo) || {};
+          const rate = toCurrencyRate.rate;
+
+          const currencyFromAmount = changedCurrency === currencyFrom ? amount : (amount / rate);
+          const currencyToAmount = changedCurrency === currencyTo ? amount : (amount * rate);
+
+          const currencyFromSign = matchCurrencySign(currencyListQuery.currencyList, currencyFrom);
+          const currencyToSign = matchCurrencySign(currencyListQuery.currencyList, currencyTo);
+
+          return (
+            <Form
+              onSubmit={this.handleSubmit(rate)}
+              className="exchangeForm"
+            >
+              <Row gutter={24}>
+                <Col span={24} style={{ textAlign: 'center' }}>
+                  <p className="exchangeForm__rate">
+                    {rate && `${currencyFromSign}1 = ${currencyToSign}${rate}`}
+                  </p>
+                </Col>
+              </Row>
+              <Row gutter={24}>
+                <Col span={11}>
+                  <Form.Item>
+                    <CurrencySelect
+                      value={currencyFrom}
+                      onChange={this.handleCurrencyFromChange}
+                      excluded={currencyTo}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={2}>
+                  <Form.Item style={{ textAlign: 'center' }}>
+                    <Icon type="arrow-right" />
+                  </Form.Item>
+                </Col>
+                <Col span={11}>
+                  <Form.Item>
+                    <CurrencySelect
+                      value={currencyTo}
+                      onChange={this.handleCurrencyToChange}
+                      excluded={currencyFrom}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={24}>
+                <Col span={11}>
+                  <Form.Item>
+                    <NumericInput
+                      value={currencyFromAmount}
+                      currency={currencyFrom}
+                      onChange={this.handleAmountChange(currencyFrom)}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={2} />
+                <Col span={11}>
+                  <Form.Item>
+                    <NumericInput
+                      value={currencyToAmount}
+                      currency={currencyTo}
+                      onChange={this.handleAmountChange(currencyTo)}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={24}>
+                <Col span={24} style={{ textAlign: 'center' }}>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    disabled={loading}
+                  >
+                    exchange
+                  </Button>
+                </Col>
+              </Row>
+            </Form>
+          );
+        }}
+      </Query>
     );
   }
 }
 
-export default ExchangeForm;
+export default compose(
+  graphql(mutations.EXCHANGE, {
+    name: 'exchangeMutation',
+    options: {
+      update: (proxy, { data: { exchange } }) => {
+        proxy.writeQuery({ query: queries.GET_POCKET_LIST, data: { pocketList: exchange } });
+      },
+    },
+  }),
+  withCurrencyList,
+)(ExchangeForm);

@@ -3,19 +3,23 @@
 import React, { PureComponent } from 'react';
 import { Input } from 'antd';
 
+import matchCurrencySign from '../../utils/matchCurrencySign';
+import { withCurrencyList } from '../../graphql/hocs';
+
 export type CurrencyType = 'USD' | 'EUR' | 'GBP' | 'RUB';
 export type CurrencySignType = '$' | '€' | '£' | '₽';
+export type Currency = {
+  code: CurrencyType,
+  sign: CurrencySignType,
+};
+
 type PropTypes = {
   onChange: Function,
   value: number,
   currency: CurrencyType,
-}
-
-const CURRENCY_SIGN_MAP = {
-  USD: '$',
-  EUR: '€',
-  GBP: '£',
-  RUB: '₽',
+  currencyListQuery: {
+    currencyList: Currency[]
+  },
 };
 
 class NumericInput extends PureComponent<PropTypes> {
@@ -40,12 +44,12 @@ class NumericInput extends PureComponent<PropTypes> {
   };
 
   render() {
-    const { currency, value } = this.props;
-    const currencySign = CURRENCY_SIGN_MAP[currency];
+    const { currency, value, currencyListQuery } = this.props;
+    const currencySign = matchCurrencySign(currencyListQuery.currencyList, currency);
 
     return (
       <Input
-        value={value}
+        value={value.toFixed(2)}
         onChange={this.handleChange}
         placeholder={`Enter amount (${currencySign})`}
         addonBefore={currencySign}
@@ -54,4 +58,4 @@ class NumericInput extends PureComponent<PropTypes> {
   }
 }
 
-export default NumericInput;
+export default withCurrencyList(NumericInput);

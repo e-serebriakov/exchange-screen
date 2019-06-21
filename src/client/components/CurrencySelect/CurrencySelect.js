@@ -1,6 +1,6 @@
 // @flow
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Select } from 'antd';
 
 const { Option } = Select;
@@ -27,16 +27,19 @@ const options = [
 type PropTypes = {
   onChange: Function,
   value: string,
+  excluded: string
 };
 
-const CurrencySelect = ({ onChange, value: selected }: PropTypes) => (
-  <Select defaultValue="USD" onChange={onChange} value={selected}>
+const CurrencySelect = ({ onChange, value: selected, excluded }: PropTypes) => (
+  <Select onChange={onChange} value={selected}>
     {
-      options.map(({ value, label }) => (
-        <Option value={value} key={value}>{label}</Option>
-      ))
+      options
+        .filter(({ value }) => excluded !== value)
+        .map(({ value, label }) => (
+          <Option value={value} key={value}>{label}</Option>
+        ))
     }
   </Select>
 );
 
-export default CurrencySelect;
+export default memo<PropTypes>(CurrencySelect);
