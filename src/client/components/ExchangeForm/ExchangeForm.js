@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { Query, graphql, compose } from 'react-apollo';
 import {
-  Form, Row, Col, Button, Icon,
+  Form, Row, Col, Button, Icon, notification,
 } from 'antd';
 
 import matchCurrencySign from '../../utils/matchCurrencySign';
@@ -19,6 +19,24 @@ class ExchangeForm extends Component {
     currencyFrom: 'USD',
     currencyTo: 'RUB',
   };
+
+  calculateCurrenciesAmount(rates) {
+    const {
+      amount, changedCurrency, currencyFrom, currencyTo,
+    } = this.state;
+
+    const toCurrencyRate = rates.find(({ currency }) => currency === currencyTo) || {};
+    const rate = toCurrencyRate.rate || null;
+
+    const currencyFromAmount = changedCurrency === currencyFrom ? amount : (amount / rate);
+    const currencyToAmount = changedCurrency === currencyTo ? amount : (amount * rate);
+
+    return {
+      rate,
+      currencyFromAmount,
+      currencyToAmount,
+    };
+  }
 
   handleSubmit = (rate) => (event) => {
     const {
@@ -61,7 +79,7 @@ class ExchangeForm extends Component {
   render() {
     const { currencyListQuery } = this.props;
     const {
-      amount, changedCurrency, currencyFrom, currencyTo,
+      amount, currencyFrom, currencyTo,
     } = this.state;
 
     return (
@@ -76,14 +94,17 @@ class ExchangeForm extends Component {
               rates = [],
             } = {},
           } = data;
-          const toCurrencyRate = rates.find(({ currency }) => currency === currencyTo) || {};
-          const rate = toCurrencyRate.rate;
 
-          const currencyFromAmount = changedCurrency === currencyFrom ? amount : (amount / rate);
-          const currencyToAmount = changedCurrency === currencyTo ? amount : (amount * rate);
+          const {
+            rate,
+            currencyFromAmount,
+            currencyToAmount,
+          } = this.calculateCurrenciesAmount(rates);
 
           const currencyFromSign = matchCurrencySign(currencyListQuery.currencyList, currencyFrom);
           const currencyToSign = matchCurrencySign(currencyListQuery.currencyList, currencyTo);
+
+          const isExchangeDisabled = loading || amount === 0;
 
           return (
             <Form
@@ -148,7 +169,7 @@ class ExchangeForm extends Component {
                   <Button
                     type="primary"
                     htmlType="submit"
-                    disabled={loading}
+                    disabled={isExchangeDisabled}
                   >
                     exchange
                   </Button>
@@ -167,6 +188,11 @@ export default compose(
     name: 'exchangeMutation',
     options: {
       update: (proxy, { data: { exchange } }) => {
+        notification.success({
+          message: 'Exchange is successfully completed',
+          duration: 2,
+        });
+
         proxy.writeQuery({ query: queries.GET_POCKET_LIST, data: { pocketList: exchange } });
       },
     },

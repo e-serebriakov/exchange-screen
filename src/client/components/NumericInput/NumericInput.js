@@ -1,10 +1,11 @@
 // @flow
 
-import React, { PureComponent } from 'react';
-import { Input } from 'antd';
+import React from 'react';
+import { InputNumber } from 'antd';
 
 import matchCurrencySign from '../../utils/matchCurrencySign';
 import { withCurrencyList } from '../../graphql/hocs';
+import './NumericInput.less';
 
 export type CurrencyType = 'USD' | 'EUR' | 'GBP' | 'RUB';
 export type CurrencySignType = '$' | '€' | '£' | '₽';
@@ -22,40 +23,32 @@ type PropTypes = {
   },
 };
 
-class NumericInput extends PureComponent<PropTypes> {
-  static defaultProps = {
-    currency: 'USD',
-  };
+const formatValue = (currencySign) => (value) => `${currencySign} ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-  sanitiseInput(value: string): number {
-    const sanitisedValue = parseFloat(value);
+const parseValue = (currencySign) => (value) => {
+  const pattern = new RegExp(`\\${currencySign}\\s?|(,*)/g`);
 
-    if (Number.isNaN(sanitisedValue)) {
-      return this.props.value;
-    }
+  return value.replace(pattern, '');
+};
 
-    return +sanitisedValue.toFixed(2);
-  }
+const NumericInput = (props: PropTypes) => {
+  const {
+    currency, value, currencyListQuery, onChange,
+  } = props;
 
-  handleChange = (event: SyntheticInputEvent<HTMLInputElement>): void => {
-    const sanitizedValue = this.sanitiseInput(event.target.value);
+  const currencySign = matchCurrencySign(currencyListQuery.currencyList, currency);
 
-    this.props.onChange(sanitizedValue);
-  };
-
-  render() {
-    const { currency, value, currencyListQuery } = this.props;
-    const currencySign = matchCurrencySign(currencyListQuery.currencyList, currency);
-
-    return (
-      <Input
-        value={value.toFixed(2)}
-        onChange={this.handleChange}
-        placeholder={`Enter amount (${currencySign})`}
-        addonBefore={currencySign}
-      />
-    );
-  }
-}
+  return (
+    <InputNumber
+      className="numericInput"
+      defaultValue={0}
+      precision={2}
+      value={value}
+      formatter={formatValue(currencySign)}
+      parser={parseValue(currencySign)}
+      onChange={onChange}
+    />
+  );
+};
 
 export default withCurrencyList(NumericInput);

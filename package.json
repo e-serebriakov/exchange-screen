@@ -9,7 +9,8 @@
     "eslint": "eslint . '**/*.js' --color",
     "eslint:fix": "eslint . '**/*.js' --fix",
     "start:client:dev": "webpack-dev-server --config ./webpack.config.js --mode development",
-    "start:server:dev": "nodemon ./src/server/index.js"
+    "start:server:dev": "nodemon ./src/server/index.js",
+    "start:dev": "concurrently \"npm run start:server:dev\" \"npm run start:client:dev\""
   },
   "husky": {
     "hooks": {
@@ -60,6 +61,7 @@
     "antd": "^3.19.5",
     "apollo-boost": "^0.4.3",
     "apollo-server": "^2.6.3",
+    "concurrently": "^4.1.0",
     "dotenv": "^8.0.0",
     "graphql": "^14.3.1",
     "node-fetch": "^2.6.0",
