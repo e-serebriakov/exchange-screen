@@ -4,8 +4,6 @@ const logger = require('./utils/logger');
 const resolvers = require('./resolvers');
 const schema = require('./schema');
 
-require('dotenv').config();
-
 const server = new ApolloServer({
   resolvers,
   typeDefs: schema,

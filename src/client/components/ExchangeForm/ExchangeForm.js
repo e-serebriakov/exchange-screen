@@ -134,7 +134,7 @@ class ExchangeForm extends Component<Props, State> {
     const currencyFromBalance = this.getCurrencyPocketBalance(currencyFrom);
     const currencyToBalance = this.getCurrencyPocketBalance(currencyTo);
 
-    const currencyFromMaxAmount = Math.min(currencyFromBalance, currencyToBalance / rate);
+    const currencyFromMaxAmount = currencyFromBalance;
     const currencyToMaxAmount = Math.min(currencyToBalance, currencyFromBalance * rate);
 
     return {

@@ -62,7 +62,6 @@
     "apollo-boost": "^0.4.3",
     "apollo-server": "^2.6.3",
     "concurrently": "^4.1.0",
-    "dotenv": "^8.0.0",
     "graphql": "^14.3.1",
     "node-fetch": "^2.6.0",
     "react": "^16.8.6",

@@ -17,7 +17,9 @@ type RequestParams = {
 };
 
 type Response = {
-  [CurrencyCode]: number,
+  rates: {
+    [CurrencyCode]: number
+  },
 };
 
 class ExchangeAPIProvider extends Provider {
@@ -96,7 +98,7 @@ class ExchangeAPIProvider extends Provider {
   }
 
   formatRates(base: CurrencyCode, rates: Response) {
-    const entries: any = Object.entries(rates);
+    const entries: any = Object.entries(rates.rates);
 
     return {
       base,

@@ -40,14 +40,15 @@ const NumericInput = (props: PropTypes) => {
 
   return (
     <InputNumber
-      className="numericInput"
-      defaultValue={0}
-      precision={2}
-      value={value}
+      min={0}
       max={max}
+      value={value}
+      precision={2}
+      defaultValue={0}
+      onChange={onChange}
+      className="numericInput"
       formatter={formatValue(currencySign)}
       parser={parseValue(currencySign)}
-      onChange={onChange}
     />
   );
 };
