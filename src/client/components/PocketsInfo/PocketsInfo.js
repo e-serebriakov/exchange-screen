@@ -1,14 +1,25 @@
-import React from 'react';
+// @flow
 
+import React, { memo } from 'react';
+import { compose } from 'react-apollo';
 import { List } from 'antd';
 
+import type { CurrencyData } from '../../../types/currencyTypes';
+import type { PocketData } from '../../../types/pocketTypes';
 import matchCurrencySign from '../../utils/matchCurrencySign';
 import { withCurrencyList } from '../../graphql/hocs';
 import './PocketsInfo.less';
 
-const processBalance = (amount) => (amount / 100).toFixed(2);
+type Props = {
+  pocketList: PocketData[],
+  currencyListQuery: {
+    currencyList: CurrencyData[],
+  },
+}
 
-const PocketsInfo = ({ pocketList, currencyListQuery }) => {
+const processBalance = (amount: number): string => (amount / 100).toFixed(2);
+
+const PocketsInfo = ({ pocketList, currencyListQuery }: Props) => {
   return (
     <div className="pocketListInfo">
       <p className="pocketListInfo__title">Your pockets</p>
@@ -30,4 +41,7 @@ const PocketsInfo = ({ pocketList, currencyListQuery }) => {
   );
 };
 
-export default withCurrencyList(PocketsInfo);
+export default compose(
+  memo,
+  withCurrencyList,
+)(PocketsInfo);

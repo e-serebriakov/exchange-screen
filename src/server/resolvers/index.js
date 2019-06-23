@@ -1,5 +1,9 @@
-const currencyResolvers = require('./currency');
-const pocketResolvers = require('./pocket');
-const rateResolvers = require('./rate');
+import currencyResolvers from './currency';
+import pocketResolvers from './pocket';
+import rateResolvers from './rate';
 
-module.exports = [currencyResolvers, pocketResolvers, rateResolvers];
+module.exports = [
+  rateResolvers,
+  pocketResolvers,
+  currencyResolvers,
+];

@@ -1,0 +1,10 @@
+{
+  "ext": "js,json",
+  "ignore": [
+    "package.json",
+    "nodemon.json",
+    "webpack.config.js",
+    "src/client/**/*",
+    "dist/*"
+  ]
+}

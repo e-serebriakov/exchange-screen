@@ -1,45 +1,45 @@
 // @flow
 
 import React, { memo } from 'react';
+import { compose } from 'react-apollo';
 import { Select } from 'antd';
 
+import { withPocketList } from '../../graphql/hocs';
+import type { PocketData } from '../../../types/pocketTypes';
+import type { CurrencyCode } from '../../../types/currencyTypes';
+
 const { Option } = Select;
-
-const options = [
-  {
-    value: 'USD',
-    label: 'American dollars',
-  },
-  {
-    value: 'EUR',
-    label: 'Euros',
-  },
-  {
-    value: 'GBP',
-    label: 'British pounds',
-  },
-  {
-    value: 'RUB',
-    label: 'Russian rubles',
-  },
-];
-
 type PropTypes = {
   onChange: Function,
-  value: string,
-  excluded: string
+  value: CurrencyCode,
+  excluded: CurrencyCode[],
+  pocketListQuery: {
+    pocketList: PocketData[],
+  }
 };
 
-const CurrencySelect = ({ onChange, value: selected, excluded }: PropTypes) => (
-  <Select onChange={onChange} value={selected}>
-    {
-      options
-        .filter(({ value }) => excluded !== value)
-        .map(({ value, label }) => (
-          <Option value={value} key={value}>{label}</Option>
-        ))
-    }
-  </Select>
-);
+const CurrencySelect = ({
+  onChange,
+  excluded,
+  pocketListQuery,
+  value: selected,
+}: PropTypes) => {
+  const options = pocketListQuery.pocketList;
 
-export default memo<PropTypes>(CurrencySelect);
+  return (
+    <Select onChange={onChange} value={selected}>
+      {
+        options
+          .filter(({ currency }) => excluded !== currency)
+          .map(({ currency, label }) => (
+            <Option value={currency} key={currency}>{label}</Option>
+          ))
+      }
+    </Select>
+  );
+};
+
+export default compose(
+  memo,
+  withPocketList,
+)(CurrencySelect);

@@ -1,52 +1,25 @@
-const fetch = require('node-fetch');
+// @flow
 
-const { currencies } = require('../data');
-
-const storage = {};
-
-const buildUrl = (base, currenciesMap) => {
-  const currencySymbols = Object.keys(currenciesMap);
-
-  return `${process.env.RATES_SOURCE_URL}?base=${base}&symbols=${currencySymbols.join(',')}`;
-};
-
-const processData = (data) => {
-  const {
-    base,
-    rates,
-  } = data;
-
-  return {
-    base,
-    rates: Object.entries(rates).map(([currency, rate]) => ({
-      rate: rate.toFixed(5),
-      currency,
-    })),
-  };
-};
+import ExchangeAPIProvider from '../providers/ExchangeAPIProvider/ExchangeAPIProvider';
+import * as ratesStorage from '../storage/rate/rate';
+import type { CurrencyCode } from '../../types/currencyTypes';
+import type { Rates } from '../../types/rateTypes';
 
 const resolvers = {
   Query: {
-    rates: async (parent, { base }) => {
-      const {
-        [base]: baseCurrency,
-        ...currenciesMap
-      } = currencies;
+    rates: async (parent: any, { base }: { base: CurrencyCode }): Rates => {
+      const provider = ExchangeAPIProvider.getInstance();
 
-      const response = await fetch(buildUrl(base, currenciesMap));
-      const data = await response.json();
+      let res = null;
 
-      if (data.error !== undefined) {
-        return storage[base];
+      try {
+        res = await provider.loadRates(base);
+        ratesStorage.updateRatesForCurrency(base, res);
+      } catch (e) {
+        res = ratesStorage.getRatesForCurrency(base);
       }
 
-      if (data.error === undefined) {
-        storage[base] = processData(data);
-      }
-
-      const rates = processData(data);
-
-      return rates;
+      return res;
     },
   },
 };

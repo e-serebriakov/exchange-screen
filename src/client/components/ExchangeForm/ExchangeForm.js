@@ -1,18 +1,42 @@
+// @flow
+
 import React, { Component } from 'react';
 import { Query, graphql, compose } from 'react-apollo';
 import {
   Form, Row, Col, Button, Icon, notification,
 } from 'antd';
 
+import type { CurrencyCode, CurrencyData } from '../../../types/currencyTypes';
+import type { PocketData } from '../../../types/pocketTypes';
+import type { RateData } from '../../../types/rateTypes';
 import matchCurrencySign from '../../utils/matchCurrencySign';
 import mutations from '../../graphql/mutations';
 import queries from '../../graphql/queries';
-import { withCurrencyList } from '../../graphql/hocs';
+import { withCurrencyList, withPocketList } from '../../graphql/hocs';
 import NumericInput from '../NumericInput/NumericInput';
 import CurrencySelect from '../CurrencySelect/CurrencySelect';
 import './ExchangeForm.less';
 
-class ExchangeForm extends Component {
+type Props = {
+  exchangeMutation: Function,
+  currencyListQuery: {
+    currencyList: CurrencyData[],
+  },
+  pocketListQuery: {
+    pocketList: PocketData[],
+  },
+};
+
+type State = {
+  amount: number,
+  changedCurrency: CurrencyCode,
+  currencyFrom: CurrencyCode,
+  currencyTo: CurrencyCode,
+}
+
+class ExchangeForm extends Component<Props, State> {
+  static RATES_POLL_INTERVAL = 10 * 1000;
+
   state = {
     amount: 0,
     changedCurrency: 'USD',
@@ -20,7 +44,7 @@ class ExchangeForm extends Component {
     currencyTo: 'RUB',
   };
 
-  calculateCurrenciesAmount(rates) {
+  calculateCurrenciesAmount(rates: RateData[]) {
     const {
       amount, changedCurrency, currencyFrom, currencyTo,
     } = this.state;
@@ -38,9 +62,22 @@ class ExchangeForm extends Component {
     };
   }
 
-  handleSubmit = (rate) => (event) => {
+  calculateExchangeAmount(rate: number): number {
     const {
       amount,
+      currencyTo,
+      changedCurrency,
+    } = this.state;
+
+    if (changedCurrency === currencyTo) {
+      return amount / rate * 100;
+    }
+
+    return amount * 100;
+  }
+
+  handleSubmit = (rate: number) => (event: SyntheticEvent<HTMLButtonElement>): void => {
+    const {
       currencyFrom,
       currencyTo,
     } = this.state;
@@ -51,7 +88,7 @@ class ExchangeForm extends Component {
       variables: {
         params: {
           rate,
-          amount: amount * 100,
+          amount: this.calculateExchangeAmount(rate),
           currencyFrom,
           currencyTo,
         },
@@ -59,14 +96,14 @@ class ExchangeForm extends Component {
     });
   }
 
-  handleAmountChange = (currency) => (value) => {
+  handleAmountChange = (currency: CurrencyCode) => (value: number): void => {
     this.setState({
       changedCurrency: currency,
       amount: value,
     });
   }
 
-  handleCurrencyChange = (type) => (currency) => {
+  handleCurrencyChange = (type: 'currencyFrom' | 'currencyTo') => (currency: CurrencyCode) => {
     this.setState({
       [type]: currency,
     });
@@ -75,6 +112,36 @@ class ExchangeForm extends Component {
   handleCurrencyFromChange = this.handleCurrencyChange('currencyFrom');
 
   handleCurrencyToChange = this.handleCurrencyChange('currencyTo');
+
+  getCurrencyPocketBalance(currency: CurrencyCode): number {
+    const { pocketListQuery } = this.props;
+
+    const pocketList = pocketListQuery.pocketList;
+    const currencyPocket = pocketList.find((pocket) => pocket.currency === currency) || {};
+
+    if (currencyPocket.balance !== undefined) {
+      return currencyPocket.balance / 100;
+    }
+
+    return 0;
+  }
+
+  calculateCurrencyMaxAmounts(rate: number): { currencyFromMaxAmount: number, currencyToMaxAmount: number } {
+    const {
+      currencyFrom, currencyTo,
+    } = this.state;
+
+    const currencyFromBalance = this.getCurrencyPocketBalance(currencyFrom);
+    const currencyToBalance = this.getCurrencyPocketBalance(currencyTo);
+
+    const currencyFromMaxAmount = Math.min(currencyFromBalance, currencyToBalance / rate);
+    const currencyToMaxAmount = Math.min(currencyToBalance, currencyFromBalance * rate);
+
+    return {
+      currencyFromMaxAmount,
+      currencyToMaxAmount,
+    };
+  }
 
   render() {
     const { currencyListQuery } = this.props;
@@ -86,7 +153,7 @@ class ExchangeForm extends Component {
       <Query
         query={queries.GET_EXCHANGE_RATES}
         variables={{ base: currencyFrom }}
-        pollInterval={1000 * 10}
+        pollInterval={ExchangeForm.RATES_POLL_INTERVAL}
       >
         {({ loading, data }) => {
           const {
@@ -105,6 +172,11 @@ class ExchangeForm extends Component {
           const currencyToSign = matchCurrencySign(currencyListQuery.currencyList, currencyTo);
 
           const isExchangeDisabled = loading || amount === 0;
+
+          const {
+            currencyFromMaxAmount,
+            currencyToMaxAmount,
+          } = this.calculateCurrencyMaxAmounts(rate);
 
           return (
             <Form
@@ -147,6 +219,7 @@ class ExchangeForm extends Component {
                 <Col span={11}>
                   <Form.Item>
                     <NumericInput
+                      max={currencyFromMaxAmount}
                       value={currencyFromAmount}
                       currency={currencyFrom}
                       onChange={this.handleAmountChange(currencyFrom)}
@@ -157,6 +230,7 @@ class ExchangeForm extends Component {
                 <Col span={11}>
                   <Form.Item>
                     <NumericInput
+                      max={currencyToMaxAmount}
                       value={currencyToAmount}
                       currency={currencyTo}
                       onChange={this.handleAmountChange(currencyTo)}
@@ -197,5 +271,6 @@ export default compose(
       },
     },
   }),
+  withPocketList,
   withCurrencyList,
 )(ExchangeForm);

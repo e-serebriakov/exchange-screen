@@ -1,8 +1,11 @@
-const { currencies } = require('../data');
+// @flow
+
+import * as currencyStorage from '../storage/currency/currency';
+import type { CurrencyData } from '../../types/currencyTypes';
 
 const resolvers = {
   Query: {
-    currencyList: () => Object.values(currencies),
+    currencyList: (): CurrencyData[] => currencyStorage.getCurrencyList(),
   },
 };
 

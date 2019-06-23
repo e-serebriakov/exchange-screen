@@ -1,37 +1,38 @@
-let { pockets } = require('../data');
+// @flow
 
-const prepreDataForResponse = (pocketsData) => {
-  return Object.values(pocketsData).sort((a, b) => a.currency > b.currency);
+import type { PocketData } from '../../types/pocketTypes';
+import type { CurrencyCode } from '../../types/currencyTypes';
+import * as pocketStorage from '../storage/pocket/pocket';
+
+type ExchangeParams = {
+  rate: number,
+  amount: number,
+  currencyTo: CurrencyCode,
+  currencyFrom: CurrencyCode,
 };
 
 const resolvers = {
   Query: {
-    pocketList: () => prepreDataForResponse(pockets),
+    pocketList: (): PocketData[] => pocketStorage.getPocketList(),
   },
   Mutation: {
-    exchange: (parent, { params }) => {
+    exchange: (parent: any, options: { params: ExchangeParams }): PocketData[] => {
+      const params = options.params;
+
       const {
         currencyFrom, currencyTo, amount, rate,
       } = params;
-      const {
-        [currencyFrom]: pocketFrom,
-        [currencyTo]: pocketTo,
-        ...restPockets
-      } = pockets;
+      const pocketFrom = pocketStorage.getCurrencyPocket(currencyFrom);
+      const pocketTo = pocketStorage.getCurrencyPocket(currencyTo);
 
-      pockets = {
-        ...restPockets,
-        [currencyFrom]: {
-          ...pocketFrom,
-          balance: pocketFrom.balance - amount,
-        },
-        [currencyTo]: {
-          ...pocketTo,
-          balance: parseFloat((pocketTo.balance + amount * rate).toFixed(2)),
-        },
-      };
+      pocketStorage.updatePocket(currencyFrom, {
+        balance: pocketFrom.balance - amount,
+      });
+      pocketStorage.updatePocket(currencyTo, {
+        balance: parseFloat((pocketTo.balance + amount * rate).toFixed(2)),
+      });
 
-      return prepreDataForResponse(pockets);
+      return pocketStorage.getPocketList();
     },
   },
 };

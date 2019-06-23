@@ -1,31 +1,31 @@
 // @flow
 
-import React from 'react';
+import React, { memo } from 'react';
+import { compose } from 'react-apollo';
 import { InputNumber } from 'antd';
 
 import matchCurrencySign from '../../utils/matchCurrencySign';
+import type { CurrencySign, CurrencyCode, CurrencyData } from '../../../types/currencyTypes';
 import { withCurrencyList } from '../../graphql/hocs';
 import './NumericInput.less';
-
-export type CurrencyType = 'USD' | 'EUR' | 'GBP' | 'RUB';
-export type CurrencySignType = '$' | '€' | '£' | '₽';
-export type Currency = {
-  code: CurrencyType,
-  sign: CurrencySignType,
-};
 
 type PropTypes = {
   onChange: Function,
   value: number,
-  currency: CurrencyType,
+  currency: CurrencyCode,
+  max: number,
   currencyListQuery: {
-    currencyList: Currency[]
+    currencyList: CurrencyData[]
   },
 };
 
-const formatValue = (currencySign) => (value) => `${currencySign} ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const formatValue = (currencySign: CurrencySign) => (value: string): string => {
+  const pattern = /\B(?=(\d{3})+(?!\d))/g;
 
-const parseValue = (currencySign) => (value) => {
+  return `${currencySign} ${value}`.replace(pattern, ',');
+};
+
+const parseValue = (currencySign: CurrencySign) => (value: string): string => {
   const pattern = new RegExp(`\\${currencySign}\\s?|(,*)/g`);
 
   return value.replace(pattern, '');
@@ -33,7 +33,7 @@ const parseValue = (currencySign) => (value) => {
 
 const NumericInput = (props: PropTypes) => {
   const {
-    currency, value, currencyListQuery, onChange,
+    currency, value, currencyListQuery, onChange, max,
   } = props;
 
   const currencySign = matchCurrencySign(currencyListQuery.currencyList, currency);
@@ -44,6 +44,7 @@ const NumericInput = (props: PropTypes) => {
       defaultValue={0}
       precision={2}
       value={value}
+      max={max}
       formatter={formatValue(currencySign)}
       parser={parseValue(currencySign)}
       onChange={onChange}
@@ -51,4 +52,7 @@ const NumericInput = (props: PropTypes) => {
   );
 };
 
-export default withCurrencyList(NumericInput);
+export default compose(
+  memo,
+  withCurrencyList,
+)(NumericInput);
